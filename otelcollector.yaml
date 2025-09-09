@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: otel-collector
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  generators:
+  - list:
+      elements:
+        - cluster: ssot-cluster-euw1
+          url: https://34.77.141.189
+          project: ssot-europe-west1-prod
+        - cluster: ssot-cluster-usc1
+          url: https://34.171.141.25
+          project: ssot-us-central1-prod
+      template:
+        spec:
+          project: '{{project}}'
+  template:
+    metadata:
+      name: otel-collector-{{cluster}}
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/algolia/go.git
+        targetRevision: master
+        path: k8s/ssot/charts/logmill
+        helm:
+          releaseName: otel-collector
+          valuesFile: otelcollector.yaml
+      destination:
+        server: '{{url}}'
+        namespace: observability
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true 
